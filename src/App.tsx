@@ -3,11 +3,15 @@ import ListGroup from "./components/ListGroup";
 import { AiFillBulb } from "react-icons/ai";
 import Form from "./components/Form";
 import ExpenseList from "./components/expense-tracker/components/ExpenseList";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ExpenseFilter from "./components/expense-tracker/components/ExpenseFilter";
 import ExpenseForm from "./components/expense-tracker/components/ExpenseForm";
+import Message from "./Message";
+import userService, { User } from "./services/userService";
+import useUsers from "./hooks/useUsers";
 
 function App() {
+  const { users, error, isLoading, setUsers, setError } = useUsers();
   // let items: string[] = ["New York", "London", "Tokyo"];
 
   // const handleSelectItem = (item: string) => {
@@ -30,6 +34,38 @@ function App() {
 
   if (expenses.length == 0) return null;
 
+  const deleteUser = (user: User): void => {
+    const originalUsers = [...users];
+    setUsers(users.filter((u) => u.id != user.id));
+    userService.deleteUser(user.id).catch((err) => {
+      setError(err.message);
+      setUsers(originalUsers);
+    });
+  };
+
+  function addUser(): void {
+    const originalUsers = [...users];
+    const newUser = { id: 0, name: "Tanuj" };
+    setUsers([newUser, ...users]);
+    userService
+      .createUser(newUser)
+      .then(({ data: savedUser }) => setUsers([savedUser, ...users]))
+      .catch((err) => {
+        setError(err.message);
+        setUsers(originalUsers);
+      });
+  }
+
+  function updateUser(user: User): void {
+    const originalUsers = [...users];
+    const updatedUser = { ...user, name: user.name + "!" };
+    setUsers(users.map((u) => (u.id === user.id ? updatedUser : u)));
+    userService.updateUser(user).catch((err) => {
+      setError(err.message);
+      setUsers(originalUsers);
+    });
+  }
+
   return (
     <div>
       <div className="mb-5">
@@ -50,6 +86,40 @@ function App() {
           setExpenses(expenses.filter((expense) => expense.id !== id))
         }
       ></ExpenseList>
+      <hr />
+      <div className="m3">
+        <p>Here we are going to display some apiClient capabilities</p>
+      </div>
+
+      {isLoading && <div className="spinner-border"></div>}
+      {error && <p className="text-danger">{error}</p>}
+      <button className="btn btn-primary mb-3" onClick={addUser}>
+        Add
+      </button>
+      <ul className="list-group">
+        {users.map((user) => (
+          <li
+            key={user.id}
+            className="list-group-item d-flex justify-content-between"
+          >
+            {user.name}{" "}
+            <div>
+              <button
+                className="btn btn-outline-secondary mx-1"
+                onClick={() => updateUser(user)}
+              >
+                Update
+              </button>
+              <button
+                onClick={() => deleteUser(user)}
+                className="btn btn-outline-danger"
+              >
+                X
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
       {/* <Form></Form> */}
       {/* <AiFillBulb color="red"></AiFillBulb> */}
       {/* <Alert>
